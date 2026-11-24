@@ -200,7 +200,7 @@ def checklist(title, questions, prefix, max_points, show_comment=False):
 # ---------- LOGIN ----------
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align:center;'>VICTORY <span style='color:#2E9BD6;'>LAB</span></h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align:center;'>BUSINESS - Quarterly Sales Performance</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center;'>STORE AUDIT</h3>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         num = st.text_input("Employee Number", placeholder="2222222222")
@@ -243,7 +243,6 @@ if choice == "Score Sheet":
     st.markdown("---")
     st.subheader("CONTROL AREA - SCORES")
 
-    # Calculate all
     g_pts = get_points("gen", len(GENERAL)); g_pct = g_pts/120*100
     s_pts = get_points("store", len(STOREOP)); s_pct = s_pts/90*100
     a_pts = get_points("admin", len(ADMIN)); a_pct = a_pts/105*100

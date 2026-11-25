@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
+import urllib.parse
 
 st.set_page_config(page_title="Victory Lab - Store Audit", layout="wide", initial_sidebar_state="expanded")
 
@@ -13,6 +14,8 @@ h1, h2, h3 { color: #0093DD; }
 .score-box { background: #E57373; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; color: white; border-radius: 10px; }
 </style>
 """, unsafe_allow_html=True)
+
+YOUR_WHATSAPP = "27813024555"
 
 # ---------- SESSION STATE ----------
 if "logged_in" not in st.session_state:
@@ -47,7 +50,6 @@ GENERAL = [
     "Cashdesk - Is iconnect running?",
     "Cashdesk - Is the store checking emails?",
 ]
-
 STOREOP = [
     "Confirm that store management perform regular spot checks on the fitting rooms.",
     "Confirm that the fitting room is clean, eg no cluster, no tags, no hangers",
@@ -68,7 +70,6 @@ STOREOP = [
     "Is store fridge working?",
     "Is the store lights in order?",
 ]
-
 ADMIN = [
     "Is the store admin presentation neat and tidy",
     "Are banking in order?",
@@ -92,7 +93,6 @@ ADMIN = [
     "Delivery - Confirm if stock is booked correctly",
     "Delivery - Confirm if stock transfer is authorised with reference numbers",
 ]
-
 HANGER = [
     "Do associate know how to generate the stock report?",
     "Do associate know how to count?",
@@ -100,7 +100,6 @@ HANGER = [
     "Confirm if counts are filed?",
     "Confirm if counts are calculated correct?",
 ]
-
 MERCH = [
     "Check if the Store Windows are clean",
     "Window visuals great - Displaying current season, trend and styles",
@@ -128,7 +127,6 @@ MERCH = [
     "General - Cash desk clean with perfumes displayed neatly",
     "General - Walls looking full with proper face outs (Outfits)",
 ]
-
 STAFF_TL = [
     "Dresses in line with VL Culture - Trend of product we sell",
     "Displays positive, good energy every day",
@@ -149,7 +147,6 @@ STAFF_TL = [
     "Counts accurately",
     "Ensures customer service is consistent up to standard",
 ]
-
 STAFF_ASSOC = [
     "Arrives at work on time / 15-20 mins before trade time",
     "Clocks in and out at all times",
@@ -181,6 +178,28 @@ def get_points(prefix, count):
             pts += 5
     return pts
 
+def get_all_scores():
+    g_pts = get_points("gen", len(GENERAL)); g_pct = g_pts/120*100 if 120 else 0
+    s_pts = get_points("store", len(STOREOP)); s_pct = s_pts/90*100 if 90 else 0
+    a_pts = get_points("admin", len(ADMIN)); a_pct = a_pts/105*100 if 105 else 0
+    h_pts = get_points("hanger", len(HANGER)); h_pct = h_pts/25*100 if 25 else 0
+    m_pts = get_points("merch", len(MERCH)); m_pct = m_pts/125*100 if 125 else 0
+    tl_pts = get_points("staff_tl", len(STAFF_TL))
+    assoc_pts = get_points("staff_assoc", len(STAFF_ASSOC))
+    staff_pts = tl_pts + assoc_pts; staff_pct = staff_pts/190*100 if 190 else 0
+    total = (g_pct + s_pct + a_pct + h_pct + m_pct + staff_pct) / 6
+    return {
+        "General": (g_pts, 120, g_pct),
+        "Store Operation": (s_pts, 90, s_pct),
+        "Admin": (a_pts, 105, a_pct),
+        "Hanger Count": (h_pts, 25, h_pct),
+        "Merchandise": (m_pts, 125, m_pct),
+        "Staff Review": (staff_pts, 190, staff_pct),
+        "TOTAL": (total, 100, total),
+        "TL": (tl_pts, 90, tl_pts/90*100),
+        "Assoc": (assoc_pts, 100, assoc_pts/100*100),
+    }
+
 def checklist(title, questions, prefix, max_points, show_comment=False):
     st.subheader(f"{title} ({max_points} points)")
     for i, q in enumerate(questions):
@@ -195,7 +214,57 @@ def checklist(title, questions, prefix, max_points, show_comment=False):
     pts = get_points(prefix, len(questions))
     pct = pts / max_points * 100 if max_points else 0
     st.success(f"{title} Score: {pts} / {max_points} - {pct:.2f}%")
+    # NEW: Finish button to go to Score Sheet
+    if st.button(f"✅ Finish {title} & View Score Sheet", use_container_width=True, key=f"finish_{prefix}"):
+        st.session_state.page = "Score Sheet"
+        st.rerun()
     return pts, pct
+
+def build_full_csv():
+    scores = get_all_scores()
+    # Section 1: Store Info
+    rows = []
+    rows.append(["VICTORY LAB - STORE AUDIT - FULL SCORES"])
+    rows.append(["Region", st.session_state.get("region","")])
+    rows.append(["Store", st.session_state.get("store","")])
+    rows.append(["Store Code", st.session_state.get("store_code","")])
+    rows.append(["Date of Com", str(st.session_state.get("date_com",""))])
+    rows.append(["DATE OF LAST AM CHECK", str(st.session_state.get("last_check",""))])
+    rows.append(["Manager Name", st.session_state.get("manager","")])
+    rows.append(["Area Manager", st.session_state.get("am","")])
+    rows.append(["Auditor Name", st.session_state.get("auditor","")])
+    rows.append(["Date Complete", str(st.session_state.get("date_complete",""))])
+    rows.append(["SCORE OF LAST AM CHECK", st.session_state.get("last_score","")])
+    rows.append([])
+    rows.append(["CONTROL AREA", "SCORE", "MAX", "PERCENTAGE"])
+    for area in ["General","Store Operation","Admin","Hanger Count","Merchandise","Staff Review"]:
+        pts, mx, pct = scores[area]
+        rows.append([area, pts, mx, f"{pct:.2f}%"])
+    rows.append(["TOTAL SCORE", f"{scores['TOTAL'][0]:.2f}%", "", ""])
+    rows.append(["Team Leader Score", scores["TL"][0], 90, f"{scores['TL'][2]:.2f}%"])
+    rows.append(["Associate Score", scores["Assoc"][0], 100, f"{scores['Assoc'][2]:.2f}%"])
+    rows.append([])
+    rows.append(["DETAILED ANSWERS"])
+    rows.append(["Section", "No", "Question", "Answer", "Points", "Comment"])
+    # Helper to add detail
+    def add_detail(section, questions, prefix):
+        for i, q in enumerate(questions):
+            ans = st.session_state.get(f"{prefix}_{i}", "--")
+            pts = 5 if ans == "Yes" else 0
+            comment = st.session_state.get(f"{prefix}c{i}", "")
+            rows.append([section, i+1, q, ans, pts, comment])
+    add_detail("General", GENERAL, "gen")
+    add_detail("Store Operation", STOREOP, "store")
+    add_detail("Admin", ADMIN, "admin")
+    add_detail("Hanger Count", HANGER, "hanger")
+    add_detail("Merchandise", MERCH, "merch")
+    add_detail("Staff Review - Team Leader", STAFF_TL, "staff_tl")
+    add_detail("Staff Review - Associate", STAFF_ASSOC, "staff_assoc")
+    rows.append([])
+    rows.append(["Checker Name", st.session_state.get("checker_name","")])
+    rows.append(["Checker Designation", st.session_state.get("checker_desig","")])
+    df = pd.DataFrame(rows)
+    return df.to_csv(index=False, header=False).encode('utf-8')
 
 # ---------- LOGIN ----------
 if not st.session_state.logged_in:
@@ -215,7 +284,7 @@ if not st.session_state.logged_in:
 
 # ---------- SIDEBAR ----------
 st.sidebar.title("VICTORY LAB")
-pages = ["Score Sheet", "General", "Store Operation", "Admin", "Hanger Count", "Merchandise", "Staff Review"]
+pages = ["Score Sheet", "General", "Store Operation", "Admin", "Hanger Count", "Merchandise", "Staff Review", "Feedback", "AI Assistant"]
 choice = st.sidebar.radio("Go to:", pages, index=pages.index(st.session_state.page))
 st.session_state.page = choice
 st.sidebar.markdown("---")
@@ -242,28 +311,14 @@ if choice == "Score Sheet":
 
     st.markdown("---")
     st.subheader("CONTROL AREA - SCORES")
-
-    g_pts = get_points("gen", len(GENERAL)); g_pct = g_pts/120*100
-    s_pts = get_points("store", len(STOREOP)); s_pct = s_pts/90*100
-    a_pts = get_points("admin", len(ADMIN)); a_pct = a_pts/105*100
-    h_pts = get_points("hanger", len(HANGER)); h_pct = h_pts/25*100
-    m_pts = get_points("merch", len(MERCH)); m_pct = m_pts/125*100
-    tl_pts = get_points("staff_tl", len(STAFF_TL))
-    assoc_pts = get_points("staff_assoc", len(STAFF_ASSOC))
-    staff_pts = tl_pts + assoc_pts; staff_pct = staff_pts/190*100
-
-    data = [
-        ["General", "High Risk", f"{g_pts} / 120", f"{g_pct:.2f}%"],
-        ["Store Operation", "High Risk", f"{s_pts} / 90", f"{s_pct:.2f}%"],
-        ["Admin", "High Risk", f"{a_pts} / 105", f"{a_pct:.2f}%"],
-        ["Hanger Count", "High Risk", f"{h_pts} / 25", f"{h_pct:.2f}%"],
-        ["Merchandise", "High Risk", f"{m_pts} / 125", f"{m_pct:.2f}%"],
-        ["Staff Review", "High Risk", f"{staff_pts} / 190", f"{staff_pct:.2f}%"],
-    ]
-    df = pd.DataFrame(data, columns=["CONTROL AREA", "RISK", "SCORE", "PERCENTAGE"])
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
-    total = (g_pct + s_pct + a_pct + h_pct + m_pct + staff_pct) / 6
+    scores = get_all_scores()
+    data = []
+    for area in ["General","Store Operation","Admin","Hanger Count","Merchandise","Staff Review"]:
+        pts, mx, pct = scores[area]
+        data.append([area, "High Risk", f"{pts} / {mx}", f"{pct:.2f}%"])
+    df_summary = pd.DataFrame(data, columns=["CONTROL AREA", "RISK", "SCORE", "PERCENTAGE"])
+    st.dataframe(df_summary, use_container_width=True, hide_index=True)
+    total = scores["TOTAL"][0]
     st.markdown(f"<div class='score-box'>TOTAL SCORE: {total:.2f}%</div>", unsafe_allow_html=True)
 
     st.markdown("---")
@@ -272,19 +327,28 @@ if choice == "Score Sheet":
     st.text_input("DESIGNATION", key="checker_desig")
     st.caption("I, the above mentioned Line Manager, hereby confirm that I have completed this Checklist and the answers given are a true reflection of the stores risk.")
 
-    if st.button("Download Scores as CSV"):
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("Click to Download", csv, "victory_lab_scores.csv", "text/csv")
+    # NEW: Download FULL CSV - includes all Control Areas + all answers
+    csv_data = build_full_csv()
+    st.download_button("📥 Download FULL Scores as CSV (All Control Areas + All Answers)", csv_data, "victory_lab_full_scores.csv", "text/csv", use_container_width=True)
+
+    # NEW: Send Score Sheet to WhatsApp
+    st.markdown("---")
+    st.subheader("Send Score Sheet on WhatsApp")
+    wa_text = f"VICTORY LAB - STORE AUDIT\nStore: {st.session_state.get('store','')} ({st.session_state.get('store_code','')})\nRegion: {st.session_state.get('region','')}\nManager: {st.session_state.get('manager','')}\nDate: {st.session_state.get('date_complete','')}\n\nCONTROL AREA SCORES:\n"
+    for area in ["General","Store Operation","Admin","Hanger Count","Merchandise","Staff Review"]:
+        pts, mx, pct = scores[area]
+        wa_text += f"{area}: {pts}/{mx} = {pct:.2f}%\n"
+    wa_text += f"\nTOTAL SCORE: {total:.2f}%\nChecker: {st.session_state.get('checker_name','')}"
+    wa_link = f"https://wa.me/{YOUR_WHATSAPP}?text={urllib.parse.quote(wa_text)}"
+    st.link_button("📱 Send Score Sheet to WhatsApp (0813024555)", wa_link, use_container_width=True)
+    st.caption("This will open WhatsApp with all scores already typed. Just press Send.")
 
 elif choice == "General":
     checklist("General", GENERAL, "gen", 120)
-
 elif choice == "Store Operation":
     checklist("Store Operation", STOREOP, "store", 90)
-
 elif choice == "Admin":
     checklist("Admin", ADMIN, "admin", 105)
-
 elif choice == "Hanger Count":
     checklist("Hanger Count", HANGER, "hanger", 25, show_comment=True)
     st.markdown("### Hanger Count 2 - Conduct with Manager on duty")
@@ -292,10 +356,11 @@ elif choice == "Hanger Count":
     st.selectbox("Is the variance that as what they reported in the previous week", ["--", "Yes", "No"], key="var_prev")
     st.selectbox("Is the variance the same?", ["--", "Yes", "No"], key="var_same")
     st.text_input("Is there any action required?", key="var_action")
-
+    if st.button("✅ Finish Hanger Count & View Score Sheet", use_container_width=True):
+        st.session_state.page = "Score Sheet"
+        st.rerun()
 elif choice == "Merchandise":
     checklist("Merchandising and Visual Standards", MERCH, "merch", 125)
-
 elif choice == "Staff Review":
     st.header("Staff Review - Total 190 Points")
     st.text_input("Team Leader Name", key="tl_name")
@@ -304,3 +369,54 @@ elif choice == "Staff Review":
     assoc_pts, assoc_pct = checklist("Associate (20 Q = 100 pts)", STAFF_ASSOC, "staff_assoc", 100, show_comment=True)
     combined = tl_pts + assoc_pts
     st.success(f"Staff Review Total: {combined} / 190 - {combined/190*100:.2f}%")
+    if st.button("✅ Finish Staff Review & View Score Sheet", use_container_width=True):
+        st.session_state.page = "Score Sheet"
+        st.rerun()
+
+elif choice == "Feedback":
+    st.header("Send Feedback on WhatsApp")
+    st.write("Tell us what went wrong. It will open WhatsApp to 0813024555.")
+    scores = get_all_scores()
+    name = st.text_input("Your Name")
+    store = st.text_input("Store Name / Store Code")
+    message = st.text_area("Your Feedback / Problem", placeholder="Example: The General score is not updating...")
+    if st.button("Send Feedback on WhatsApp", use_container_width=True):
+        if not name or not message:
+            st.error("Please fill in your name and feedback")
+        else:
+            full_text = f"Hi Victory Lab! Feedback from {name}\nStore: {store}\nScores - Total: {scores['TOTAL'][0]:.2f}% | General: {scores['General'][2]:.2f}% | Merch: {scores['Merchandise'][2]:.2f}% | Admin: {scores['Admin'][2]:.2f}%\n\n{message}"
+            wa_link = f"https://wa.me/{YOUR_WHATSAPP}?text={urllib.parse.quote(full_text)}"
+            st.success("Tap below to send on WhatsApp:")
+            st.link_button("📱 Open WhatsApp & Send", wa_link, use_container_width=True)
+
+elif choice == "AI Assistant":
+    st.header("🤖 Victory Lab AI Assistant - Like Google AI Studio")
+    st.write("Ask me anything about the audit. Example: What is hanger count? How do I improve Merchandise?")
+    # Try Gemini if key exists, else use simple brain
+    use_gemini = False
+    model = None
+    try:
+        import google.generativeai as genai
+        if "GEMINI_API_KEY" in st.secrets:
+            genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            use_gemini = True
+    except:
+        use_gemini = False
+    if "chat" not in st.session_state:
+        st.session_state.chat = [{"role": "assistant", "content": "Hi! I'm your Victory Lab Robot. Ask me about General, Admin, Merchandise, Hanger Count or Staff Review."}]
+    for msg in st.session_state.chat:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+    question = st.chat_input("Type your question here...")
+    if question:
+        st.session_state.chat.append({"role": "user", "content": question})
+        q = question.lower()
+        if use_gemini and model:
+            with st.spinner("Thinking..."):
+                prompt = f"You are Victory Lab AI Assistant for a clothing store in South Africa. Help staff with store audits, customer service, merchandising. Be short, simple, friendly. Question: {question}"
+                try:
+                    resp = model.generate_content(prompt)
+                    answer = resp.text
+                except Exception as e:
+                    answer = "Sorry, Gemini is not available

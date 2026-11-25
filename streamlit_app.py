@@ -22,7 +22,6 @@ h1, h2, h3 { color: #0093DD; }
 
 YOUR_WHATSAPP = "27813024555"
 
-# ---------- PERSISTENT STORAGE - SCORES NEVER CLEAR ----------
 if "answers" not in st.session_state:
     st.session_state.answers = {}
 if "info" not in st.session_state:
@@ -43,7 +42,6 @@ def get_answer(key):
 def get_info(key, default=""):
     return st.session_state.info.get(key, default)
 
-# ---------- DATA ----------
 GENERAL = ["Staff arrive on time?","Inspect is trading hours are visible on store window?","Is the store window clean?","Is the closing/opening procedure followed?","Doors Opening at right time?","Greeter at the doors?","Staff using the finger print reader?","Is staff consistently signing clocking register?","Count store float with manager on duty?","Is the float and Banking Register Updated?","Morning Meets - A. Are meetings performed and recorded?","Morning Meets - B. Is the Greeter Function Planned?","Morning Meets - C. Are Lunch Breaks Planned?","Morning Meets - D. Are associates signing attendance of Morning Meeting?","Store Vibe - Is the music on?","Store Vibe - Is the music playing from the Pc?","Store Vibe - Is the TV Playing?","Store Vibe - Is the content on the TV correct?","Cashdesk - Is the cashdesk area clean and neat?","Cashdesk - Are cables neat?","Cashdesk - Is the Team viewer running?","Cashdesk - Is the computer time and date correct?","Cashdesk - Is iconnect running?","Cashdesk - Is the store checking emails?"]
 STOREOP = ["Confirm that store management perform regular spot checks on the fitting rooms.","Confirm that the fitting room is clean, eg no cluster, no tags, no hangers","Confirm if there are no expired Laybuys","Check if the stockroom is neat and tidy","Check if there is no stock lying around (if yes select no)","Check if fixtures / marketing / hangers are neatly separated","Is there core stock in the stockroom","Are boxes labelled neatly","Confirm that the Electric Board has electric switches properly labelled and that the board is fitted with a door. Confirm that electrical wiring / cabling is neatly and safely secured and there are no open light and plug fittings.","Plug points on Sales Floor to be fitted with plug cover","Confirm the store's air-conditioning system is fully operational and is serviced regularly as per the conditions of the Rental Contract.","Inspect if the store Has a fire extinguisher","Inspect if the fire extinguisher is compliant","Confirm if the store is performing security at Sales Floor","Confirm if the Alarm test is done as Per Procedure","Confirm if the store emails the OPS / AM the alarm reference for Alarm Test","Is store fridge working?","Is the store lights in order?"]
 ADMIN = ["Is the store admin presentation neat and tidy","Are banking in order?","Are cards and cash balancing?","Is there payment wrong tenders? (Cash punched instead of Card etc)","Is the sales book in order?","Is all the manuals sales accounted for and processed correct?","Are the slips signed, dated and cancelled?","Is all petty cash slips in order?","Are all petty cash slips filed in sequence?","Is there reference numbers in petty cash slips?","Is the petty cash supporting dockets cancelled, dated and signed?","Is all refund slips in order?","Is all refund slips filed in a sequency?","Is there customer details and original slip accounted for?","Are the supporting refund slips signed, dated and cancelled?","Is the reference for the refunds attached?","Delivery - Inspect if there are no transfers older than a month","Delivery - Check if the transfer were followed up with stock department","Delivery - Check if delivery notes are accounted for: Transfer Numbers Confirmed, Signed and dated","Delivery - Confirm if stock is booked correctly","Delivery - Confirm if stock transfer is authorised with reference numbers"]
@@ -52,7 +50,6 @@ MERCH = ["Check if the Store Windows are clean","Window visuals great - Displayi
 STAFF_TL = ["Dresses in line with VL Culture - Trend of product we sell","Displays positive, good energy every day","Reports daily figures every day","Gives feedback as per schedule on time","Approaches and assists customers - 2 metre rule","Actions / React to instructions / notes timously","Submits hanger count accurate and on time","Ensures store merchandise standards consistently great","Ensures accurate stock booking in","Assists in visuals and merchandising","Ensures admin done and up to date","Fully understands VL Culture document","Fully abides and live by VL Culture","Follows instructions immediately and properly","Ensures accurate cash ups","Follows up on any store issues","Counts accurately","Ensures customer service is consistent up to standard"]
 STAFF_ASSOC = ["Arrives at work on time / 15-20 mins before trade time","Clocks in and out at all times","Dresses in line with VL Culture - Trend of product we sell","Displays positive, good energy","Displays interest in store performance","Adheres to greeter roster - Does greeter shifts","Approaches and assists customers - 2 metre rule","Talks to customers about in-store promo's","Pushes add-on sales","Productive throughout the day","Checks incoming stock correctly","Assists in visuals and merchandising","Assists in housekeeping and cleaning store daily","Fully understands VL Culture document","Fully abides and live by VL Culture","Follows instructions immediately and properly","Rings up sales accurately","Assists with counts","Counts accurately","Ensures store operates smooth in manager absence"]
 
-# ---------- HELPERS ----------
 def get_points(prefix, count):
     pts = 0
     for i in range(count):
@@ -130,7 +127,6 @@ def build_full_csv():
     rows.append([]); rows.append(["Checker Name", get_info("checker_name")]); rows.append(["Checker Designation", get_info("checker_desig")])
     df = pd.DataFrame(rows); return df.to_csv(index=False, header=False).encode('utf-8')
 
-# ---------- LOGIN ----------
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align:center;'>VICTORY <span style='color:#2E9BD6;'>LAB</span></h1>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align:center;'>STORE AUDIT</h3>", unsafe_allow_html=True)
@@ -143,7 +139,6 @@ if not st.session_state.logged_in:
             else: st.error("Wrong number or password")
     st.stop()
 
-# ---------- SIDEBAR ----------
 st.sidebar.title("VICTORY LAB")
 pages = ["Score Sheet", "General", "Store Operation", "Admin", "Hanger Count", "Merchandise", "Staff Review", "📸 Photo Check - Meta AI"]
 if "nav" not in st.session_state: st.session_state.nav = st.session_state.page
@@ -153,10 +148,8 @@ st.sidebar.markdown("---")
 if st.sidebar.button("Log Out"): st.session_state.logged_in = False; st.rerun()
 if st.sidebar.button("🔄 Start New Audit (Clear All)"): st.session_state.answers = {}; st.session_state.info = {}; st.rerun()
 
-# ---------- TOP SCORE BAR ON EVERY PAGE ----------
 show_top_scores()
 
-# ---------- PAGES ----------
 if choice == "Score Sheet":
     st.header("Score Sheet")
     col1, col2 = st.columns(2)
@@ -212,31 +205,40 @@ elif choice == "Staff Review":
     if st.button("✅ Finish Staff Review & View Score Sheet", use_container_width=True): st.session_state.page = "Score Sheet"; st.rerun()
 elif choice == "📸 Photo Check - Meta AI":
     st.header("📸 Photo Check - Corrected by Meta AI (Llama)")
+    st.info("Paste your Groq key below. Get free key at console.groq.com > API Keys > Create")
+    secret_key = ""
+    try:
+        secret_key = st.secrets["GROQ_API_KEY"]
+    except:
+        secret_key = ""
+    typed_key = st.text_input("🔑 Paste your Groq API Key here (starts with gsk_)", type="password", value=secret_key, placeholder="gsk_...")
+    api_key = typed_key.strip() if typed_key else secret_key
     check_type = st.selectbox("What are you checking?", ["Stockroom - Neat, labelled, no stock on floor","General - Window clean, Trading hours visible, Cashdesk clean","Merchandise - Nesting tables full, Denim wall lowest to highest, Mannequins dressed","Store Operation - Fitting rooms clean, No cluster, No tags","Admin - Admin presentation neat and tidy","Cashdesk - Clean, cables neat, perfumes displayed","Layby - Bags filed neatly, labels visible, no piling"])
     photo = st.file_uploader("Take / Upload Photo", type=["jpg", "jpeg", "png"])
     store_name_photo = st.text_input("Store Name", key="photo_store")
     if photo:
         st.image(photo, caption="Your Photo", use_container_width=True)
         if st.button("🤖 Check With Meta AI", use_container_width=True):
-            with st.spinner("Meta AI is checking your photo..."):
-                try:
-                    img_bytes = photo.getvalue()
-                    b64 = base64.b64encode(img_bytes).decode("utf-8")
-                    api_key = st.secrets["GROQ_API_KEY"]
-                    prompt = f"You are Victory Lab Store Audit Expert for a clothing store in South Africa. Standard to check: {check_type} Store: {store_name_photo}. Look at this photo carefully. Give answer in this exact format: 1. VERDICT: PASS or FAIL 2. SCORE: X / 5 3. WHAT IS WRONG: List 3-5 things you can SEE that are wrong vs standard. Be specific. 4. HOW TO CORRECT IT NOW: List step-by-step actions staff must do in next 30 minutes to fix it. 5. WHAT TO DO TO KEEP IT RIGHT: 2 tips. Be short, simple, direct. Use South African English."
-                    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                    payload = {"model": "meta-llama/llama-4-scout-17b-16e-instruct", "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}]}], "max_tokens": 1000}
-                    r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=60)
-                    data = r.json()
-                    if "choices" not in data:
-                        st.error(f"Groq Error: {data}")
-                    else:
-                        result = data["choices"][0]["message"]["content"]
-                        st.success("✅ Meta AI Check Complete")
-                        st.markdown(result)
-                        wa_text = f"VL PHOTO CHECK - {store_name_photo}\nStandard: {check_type}\n\n{result}"
-                        wa_link = f"https://wa.me/{YOUR_WHATSAPP}?text={urllib.parse.quote(wa_text)}"
-                        st.link_button("📱 Send This Photo Check to WhatsApp (0813024555)", wa_link, use_container_width=True)
-                except Exception as e:
-                    st.error("No AI Key found. Add GROQ_API_KEY in Streamlit Secrets.")
-                    st.info(f"Error: {e}")
+            if not api_key:
+                st.error("❌ No Groq Key. Paste your key in the box above. Get it free at console.groq.com > API Keys > Create")
+            else:
+                with st.spinner("Meta AI is checking your photo..."):
+                    try:
+                        img_bytes = photo.getvalue()
+                        b64 = base64.b64encode(img_bytes).decode("utf-8")
+                        prompt = f"You are Victory Lab Store Audit Expert for a clothing store in South Africa. Standard to check: {check_type} Store: {store_name_photo}. Look at this photo carefully. Give answer in this exact format: 1. VERDICT: PASS or FAIL 2. SCORE: X / 5 3. WHAT IS WRONG: List 3-5 things you can SEE that are wrong vs standard. Be specific. 4. HOW TO CORRECT IT NOW: List step-by-step actions staff must do in next 30 minutes to fix it. 5. WHAT TO DO TO KEEP IT RIGHT: 2 tips. Be short, simple, direct. Use South African English."
+                        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+                        payload = {"model": "meta-llama/llama-4-scout-17b-16e-instruct", "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}]}], "max_tokens": 1000}
+                        r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=60)
+                        data = r.json()
+                        if "choices" not in data:
+                            st.error(f"Groq Error: {data}")
+                        else:
+                            result = data["choices"][0]["message"]["content"]
+                            st.success("✅ Meta AI Check Complete")
+                            st.markdown(result)
+                            wa_text = f"VL PHOTO CHECK - {store_name_photo}\nStandard: {check_type}\n\n{result}"
+                            wa_link = f"https://wa.me/{YOUR_WHATSAPP}?text={urllib.parse.quote(wa_text)}"
+                            st.link_button("📱 Send This Photo Check to WhatsApp (0813024555)", wa_link, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Error: {e}")

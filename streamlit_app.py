@@ -204,57 +204,44 @@ elif choice == "Staff Review":
     st.success(f"Staff Review Total: {combined} / 190 - {combined/190*100:.2f}%")
     if st.button("✅ Finish Staff Review & View Score Sheet", use_container_width=True): st.session_state.page = "Score Sheet"; st.rerun()
 elif choice == "📸 Photo Check - Meta AI":
-    st.header("📸 Photo Check - Corrected by Google Gemini AI")
-    st.info("Paste your Gemini key below. Get free key at aistudio.google.com > Get API Key")
-    secret_key = ""
-    try:
-        secret_key = st.secrets["GEMINI_API_KEY"]
-    except:
-        secret_key = ""
-    typed_key = st.text_input("🔑 Paste your Gemini API Key here", type="password", value=secret_key, placeholder="AIza...")
-    api_key = typed_key.strip() if typed_key else secret_key
-    check_type = st.selectbox("What are you checking?", ["Stockroom - Neat, labelled, no stock on floor","General - Window clean, Trading hours visible, Cashdesk clean","Merchandise - Nesting tables full, Denim wall lowest to highest, Mannequins dressed","Store Operation - Fitting rooms clean, No cluster, No tags","Admin - Admin presentation neat and tidy","Cashdesk - Clean, cables neat, perfumes displayed","Layby - Bags filed neatly, labels visible, no piling"])
+    st.header("📸 Photo Check")
+    st.caption("Upload BEFORE photo. AI will check it AND make the CORRECTION picture using the SAME content.")
+    typed_key = st.text_input("🔑 Paste your Gemini API Key here", type="password", placeholder="Paste key here")
+    api_key = typed_key.strip()
+    check_type = st.selectbox("What are you checking?", ["Layby - Bags filed neatly, labels visible, no piling","Stockroom - Neat, labelled, no stock on floor","General - Window clean, Trading hours visible, Cashdesk clean","Merchandise - Nesting tables full, Denim wall lowest to highest, Mannequins dressed","Store Operation - Fitting rooms clean, No cluster, No tags","Admin - Admin presentation neat and tidy","Cashdesk - Clean, cables neat, perfumes displayed"])
     photo = st.file_uploader("Take / Upload Photo", type=["jpg", "jpeg", "png"])
     store_name_photo = st.text_input("Store Name", key="photo_store")
     if photo:
-        st.image(photo, caption="BEFORE - Your Photo", use_container_width=True)
-        if st.button("🤖 Check With AI", use_container_width=True):
-            if not api_key:
-                st.error("❌ No Gemini Key. Paste your key above.")
-            else:
-                with st.spinner("AI is checking your photo..."):
-                    try:
-                        img_bytes = photo.getvalue()
-                        b64 = base64.b64encode(img_bytes).decode("utf-8")
-                        prompt = f"You are Victory Lab Store Audit Expert for a clothing store in South Africa. Standard to check: {check_type} Store: {store_name_photo}. Look at this photo carefully. Give answer in this exact format: 1. VERDICT: PASS or FAIL 2. SCORE: X / 5 3. WHAT IS WRONG: List 3-5 things you can SEE that are wrong vs standard. Be specific. 4. HOW TO CORRECT IT NOW: List step-by-step actions staff must do in next 30 minutes to fix it. 5. WHAT TO DO TO KEEP IT RIGHT: 2 tips. Be short, simple, direct. Use South African English."
-                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
-                        payload = {"contents": [{"parts": [{"text": prompt}, {"inlineData": {"mimeType": "image/jpeg", "data": b64}}]}]}
-                        r = requests.post(url, json=payload, timeout=90)
-                        data = r.json()
-                        if "candidates" not in data:
-                            st.error(f"Gemini Error: {data}")
-                        else:
-                            result = data["candidates"][0]["content"]["parts"][0]["text"]
-                            st.success("✅ AI Check Complete")
-                            st.markdown(result)
-                            wa_text = f"VL PHOTO CHECK - {store_name_photo}\nStandard: {check_type}\n\n{result}"
-                            wa_link = f"https://wa.me/{YOUR_WHATSAPP}?text={urllib.parse.quote(wa_text)}"
-                            st.link_button("📱 Send This Photo Check to WhatsApp", wa_link, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Error: {e}")
-        st.markdown("---")
-        st.subheader("✨ Want to SEE what it should look like fixed?")
-        st.caption("AI will make an AFTER picture - same shelf, same stock, but neat, labelled, tidy.")
-        if st.button("✨ Show Me AFTER Picture - Fixed Neatly", use_container_width=True):
+        st.markdown("### Before")
+        st.image(photo, caption="Before - Your Photo", use_container_width=True)
+        if st.button("🤖 Check + Make CORRECTION Picture", use_container_width=True):
             if not api_key:
                 st.error("❌ Paste your Gemini key first.")
             else:
-                with st.spinner("AI is making your AFTER picture... wait 20-30 seconds..."):
+                img_bytes = photo.getvalue()
+                b64 = base64.b64encode(img_bytes).decode("utf-8")
+                # STEP 1 - TEXT CHECK
+                with st.spinner("Step 1/2 - AI is checking..."):
                     try:
-                        img_bytes = photo.getvalue()
-                        b64 = base64.b64encode(img_bytes).decode("utf-8")
-                        fix_prompt = f"Edit this photo to show the AFTER version. Keep the exact same room, same shelves, same bags, same camera angle. But make it neat and correct for standard: {check_type}. Tidy all bags, align them in neat rows, labels facing forward, no bags hanging messy, no stock on floor, shelves clean and organised, boxes neatly stacked. Realistic photo, not cartoon, same lighting."
-                        url2 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key={api_key}"
+                        prompt = f"You are Victory Lab Store Audit Expert. Standard: {check_type} Store: {store_name_photo}. Look at photo. Give: 1. VERDICT: PASS or FAIL 2. SCORE: X / 5 3. WHAT IS WRONG: 3-5 things you SEE wrong 4. HOW TO CORRECT IT NOW: step-by-step in 30 mins. Short, simple, South African English."
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
+                        payload = {"contents": [{"parts": [{"text": prompt}, {"inlineData": {"mimeType": "image/jpeg", "data": b64}}]}]}
+                        r = requests.post(url, json=payload, timeout=90)
+                        data = r.json()
+                        if "candidates" in data:
+                            st.success("✅ AI Check Complete")
+                            st.markdown(data["candidates"][0]["content"]["parts"][0]["text"])
+                        else:
+                            st.error(f"Check Error: {data}")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+                # STEP 2 - CORRECTION PICTURE USING SAME CONTENT
+                st.markdown("### Correction")
+                st.caption("AI is now making the Correction picture - SAME shelf, SAME bags, SAME content, just tidied.")
+                with st.spinner("Step 2/2 - AI is making CORRECTION picture... wait 20-30 seconds..."):
+                    try:
+                        fix_prompt = f"Edit this exact photo into a CORRECTION version. CRITICAL RULES: Use the SAME content as the original photo. Do NOT add new items, do NOT remove items, do NOT change the number of bags / boxes / clothes. Keep the exact same room, same shelves, same camera angle, same lighting, same colours. ONLY change: tidy and straighten what is already there to meet this standard: {check_type}. Align bags in neat straight rows, labels facing forward, no bags hanging messy, no stock on floor, shelves clean and organised, boxes neatly stacked. The result must look like the SAME store after staff tidied it, not a different store. Realistic photo, not cartoon, not illustration."
+                        url2 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key={api_key}"
                         payload2 = {"contents": [{"parts": [{"text": fix_prompt}, {"inlineData": {"mimeType": "image/jpeg", "data": b64}}]}], "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}}
                         r2 = requests.post(url2, json=payload2, timeout=120)
                         data2 = r2.json()
@@ -263,17 +250,18 @@ elif choice == "📸 Photo Check - Meta AI":
                             for part in data2["candidates"][0]["content"]["parts"]:
                                 if "inlineData" in part:
                                     img_data = base64.b64decode(part["inlineData"]["data"])
-                                    st.success("✅ AFTER Picture Ready - Show this to staff!")
-                                    col1, col2 = st.columns(2)
-                                    with col1:
-                                        st.image(photo, caption="BEFORE - Messy", use_container_width=True)
-                                    with col2:
-                                        st.image(img_data, caption="AFTER - Neat - This is the standard!", use_container_width=True)
-                                    st.download_button("📥 Download AFTER Picture", img_data, "after_fixed.jpg", "image/jpeg", use_container_width=True)
+                                    st.success("✅ CORRECTION Picture Ready!")
+                                    st.image(img_data, caption="Correction - SAME content, just fixed neatly", use_container_width=True)
+                                    st.download_button("📥 Download CORRECTION Picture", img_data, "correction_fixed.jpg", "image/jpeg", use_container_width=True)
+                                    st.markdown("---")
+                                    st.markdown("### Before vs Correction")
+                                    c1, c2 = st.columns(2)
+                                    with c1: st.image(photo, caption="Before", use_container_width=True)
+                                    with c2: st.image(img_data, caption="Correction", use_container_width=True)
                                     found = True
                                     break
                         if not found:
-                            st.error(f"Could not make AFTER picture. Try again. Details: {data2}")
-                            st.info("Tip: If this keeps failing, your key may need Image Generation enabled. Go to aistudio.google.com > Get API Key > Create new key, and try that new key.")
+                            st.error("Could not make Correction picture. Tap the button again.")
+                            st.write(data2)
                     except Exception as e:
                         st.error(f"Error: {e}")

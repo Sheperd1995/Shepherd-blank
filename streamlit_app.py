@@ -5,6 +5,7 @@ import urllib.parse
 import base64
 import io
 from PIL import Image
+import requests
 
 st.set_page_config(page_title="Victory Lab - Store Audit", layout="wide", initial_sidebar_state="expanded")
 
@@ -142,7 +143,7 @@ if not st.session_state.logged_in:
             else: st.error("Wrong number or password")
     st.stop()
 
-# ---------- SIDEBAR - AI ASSISTANT AND FEEDBACK REMOVED ----------
+# ---------- SIDEBAR ----------
 st.sidebar.title("VICTORY LAB")
 pages = ["Score Sheet", "General", "Store Operation", "Admin", "Hanger Count", "Merchandise", "Staff Review", "📸 Photo Check - Meta AI"]
 if "nav" not in st.session_state: st.session_state.nav = st.session_state.page
@@ -212,19 +213,30 @@ elif choice == "Staff Review":
 elif choice == "📸 Photo Check - Meta AI":
     st.header("📸 Photo Check - Corrected by Meta AI (Llama)")
     check_type = st.selectbox("What are you checking?", ["Stockroom - Neat, labelled, no stock on floor","General - Window clean, Trading hours visible, Cashdesk clean","Merchandise - Nesting tables full, Denim wall lowest to highest, Mannequins dressed","Store Operation - Fitting rooms clean, No cluster, No tags","Admin - Admin presentation neat and tidy","Cashdesk - Clean, cables neat, perfumes displayed","Layby - Bags filed neatly, labels visible, no piling"])
-    photo = st.file_uploader("Take / Upload Photo", type=["jpg", "jpeg", "png"]); store_name_photo = st.text_input("Store Name", key="photo_store")
+    photo = st.file_uploader("Take / Upload Photo", type=["jpg", "jpeg", "png"])
+    store_name_photo = st.text_input("Store Name", key="photo_store")
     if photo:
         st.image(photo, caption="Your Photo", use_container_width=True)
         if st.button("🤖 Check With Meta AI", use_container_width=True):
-            with st.spinner("Meta AI is checking your photo against VL Standard..."):
+            with st.spinner("Meta AI is checking your photo..."):
                 try:
-                    img_bytes = photo.getvalue(); b64 = base64.b64encode(img_bytes).decode("utf-8")
-                    from groq import Groq; client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                    prompt = f"You are Victory Lab Store Audit Expert. Standard: {check_type} Store: {store_name_photo}. Give VERDICT PASS/FAIL, SCORE /5, WHAT IS WRONG, HOW TO CORRECT IT NOW, HOW TO KEEP IT RIGHT. Short, direct."
-                    response = client.chat.completions.create(model="meta-llama/llama-4-scout-17b-16e-instruct", messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}]}], max_tokens=1000)
-                    result = response.choices[0].message.content; st.success("✅ Meta AI Check Complete"); st.markdown(result)
-                    wa_text = f"VL PHOTO CHECK - {store_name_photo}\nStandard: {check_type}\n\n{result}"; wa_link = f"https://wa.me/{YOUR_WHATSAPP}?text={urllib.parse.quote(wa_text)}"; st.link_button("📱 Send This Photo Check to WhatsApp (0813024555)", wa_link, use_container_width=True)
+                    img_bytes = photo.getvalue()
+                    b64 = base64.b64encode(img_bytes).decode("utf-8")
+                    api_key = st.secrets["GROQ_API_KEY"]
+                    prompt = f"You are Victory Lab Store Audit Expert for a clothing store in South Africa. Standard to check: {check_type} Store: {store_name_photo}. Look at this photo carefully. Give answer in this exact format: 1. VERDICT: PASS or FAIL 2. SCORE: X / 5 3. WHAT IS WRONG: List 3-5 things you can SEE that are wrong vs standard. Be specific. 4. HOW TO CORRECT IT NOW: List step-by-step actions staff must do in next 30 minutes to fix it. 5. WHAT TO DO TO KEEP IT RIGHT: 2 tips. Be short, simple, direct. Use South African English."
+                    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+                    payload = {"model": "meta-llama/llama-4-scout-17b-16e-instruct", "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}]}], "max_tokens": 1000}
+                    r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=60)
+                    data = r.json()
+                    if "choices" not in data:
+                        st.error(f"Groq Error: {data}")
+                    else:
+                        result = data["choices"][0]["message"]["content"]
+                        st.success("✅ Meta AI Check Complete")
+                        st.markdown(result)
+                        wa_text = f"VL PHOTO CHECK - {store_name_photo}\nStandard: {check_type}\n\n{result}"
+                        wa_link = f"https://wa.me/{YOUR_WHATSAPP}?text={urllib.parse.quote(wa_text)}"
+                        st.link_button("📱 Send This Photo Check to WhatsApp (0813024555)", wa_link, use_container_width=True)
                 except Exception as e:
-                    try:
-                        import google.generativeai as genai; genai.configure(api_key=st.secrets["GEMINI_API_KEY"]); model2 = genai.GenerativeModel("gemini-1.5-flash"); img = Image.open(io.BytesIO(img_bytes)); resp = model2.generate_content([f"Check this photo against: {check_type}. Give VERDICT, SCORE /5, WHAT IS WRONG, HOW TO CORRECT IT NOW.", img]); st.success("✅ AI Check Complete"); st.markdown(resp.text)
-                    except: st.error("No AI Key found. Add GROQ_API_KEY in Streamlit Secrets."); st.info(f"Error: {e}")
+                    st.error("No AI Key found. Add GROQ_API_KEY in Streamlit Secrets.")
+                    st.info(f"Error: {e}")

@@ -205,11 +205,11 @@ def checklist(title, questions, prefix, max_points, show_comment=False):
     for i, q in enumerate(questions):
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.write(f"*{i+1}.* {q}")
+            st.write(f"**{i+1}.** {q}")
         with col2:
             st.radio("Response", ["--", "Yes", "No"], key=f"{prefix}_{i}", horizontal=True, label_visibility="collapsed")
         if show_comment:
-            st.text_input("Comment", key=f"{prefix}c{i}", label_visibility="collapsed", placeholder="Comment")
+            st.text_input("Comment", key=f"{prefix}_c_{i}", label_visibility="collapsed", placeholder="Comment")
         st.divider()
     pts = get_points(prefix, len(questions))
     pct = pts / max_points * 100 if max_points else 0
@@ -248,7 +248,7 @@ def build_full_csv():
         for i, q in enumerate(questions):
             ans = st.session_state.get(f"{prefix}_{i}", "--")
             pts = 5 if ans == "Yes" else 0
-            comment = st.session_state.get(f"{prefix}c{i}", "")
+            comment = st.session_state.get(f"{prefix}_c_{i}", "")
             rows.append([section, i+1, q, ans, pts, comment])
     add_detail("General", GENERAL, "gen")
     add_detail("Store Operation", STOREOP, "store")
@@ -270,7 +270,7 @@ if not st.session_state.logged_in:
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         num = st.text_input("Employee Number", placeholder="2222222222")
-        pwd = st.text_input("Password", type="password", placeholder="****")
+        pwd = st.text_input("Password", type="password", placeholder="********")
         if st.button("LOG IN", use_container_width=True):
             if num == "2222222222" and pwd == "123456":
                 st.session_state.logged_in = True

@@ -204,38 +204,38 @@ elif choice == "Staff Review":
     st.success(f"Staff Review Total: {combined} / 190 - {combined/190*100:.2f}%")
     if st.button("✅ Finish Staff Review & View Score Sheet", use_container_width=True): st.session_state.page = "Score Sheet"; st.rerun()
 elif choice == "📸 Photo Check - Meta AI":
-    st.header("📸 Photo Check - Corrected by Meta AI (Llama)")
-    st.info("Paste your Groq key below. Get free key at console.groq.com > API Keys > Create")
+    st.header("📸 Photo Check - Corrected by Google Gemini AI")
+    st.info("Paste your Gemini key below. Get free key at aistudio.google.com > Get API Key")
     secret_key = ""
     try:
-        secret_key = st.secrets["GROQ_API_KEY"]
+        secret_key = st.secrets["GEMINI_API_KEY"]
     except:
         secret_key = ""
-    typed_key = st.text_input("🔑 Paste your Groq API Key here (starts with gsk_)", type="password", value=secret_key, placeholder="gsk_...")
+    typed_key = st.text_input("🔑 Paste your Gemini API Key here (starts with AIza...)", type="password", value=secret_key, placeholder="AIza...")
     api_key = typed_key.strip() if typed_key else secret_key
     check_type = st.selectbox("What are you checking?", ["Stockroom - Neat, labelled, no stock on floor","General - Window clean, Trading hours visible, Cashdesk clean","Merchandise - Nesting tables full, Denim wall lowest to highest, Mannequins dressed","Store Operation - Fitting rooms clean, No cluster, No tags","Admin - Admin presentation neat and tidy","Cashdesk - Clean, cables neat, perfumes displayed","Layby - Bags filed neatly, labels visible, no piling"])
     photo = st.file_uploader("Take / Upload Photo", type=["jpg", "jpeg", "png"])
     store_name_photo = st.text_input("Store Name", key="photo_store")
     if photo:
         st.image(photo, caption="Your Photo", use_container_width=True)
-        if st.button("🤖 Check With Meta AI", use_container_width=True):
+        if st.button("🤖 Check With AI", use_container_width=True):
             if not api_key:
-                st.error("❌ No Groq Key. Paste your key in the box above. Get it free at console.groq.com > API Keys > Create")
+                st.error("❌ No Gemini Key. Paste your AIza... key in the box above. Get it free at aistudio.google.com > Get API Key")
             else:
-                with st.spinner("Meta AI is checking your photo..."):
+                with st.spinner("AI is checking your photo..."):
                     try:
                         img_bytes = photo.getvalue()
                         b64 = base64.b64encode(img_bytes).decode("utf-8")
                         prompt = f"You are Victory Lab Store Audit Expert for a clothing store in South Africa. Standard to check: {check_type} Store: {store_name_photo}. Look at this photo carefully. Give answer in this exact format: 1. VERDICT: PASS or FAIL 2. SCORE: X / 5 3. WHAT IS WRONG: List 3-5 things you can SEE that are wrong vs standard. Be specific. 4. HOW TO CORRECT IT NOW: List step-by-step actions staff must do in next 30 minutes to fix it. 5. WHAT TO DO TO KEEP IT RIGHT: 2 tips. Be short, simple, direct. Use South African English."
-                        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                        payload = {"model": "meta-llama/llama-4-scout-17b-16e-instruct", "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}]}], "max_tokens": 1000}
-                        r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=60)
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+                        payload = {"contents": [{"parts": [{"text": prompt}, {"inline_data": {"mime_type": "image/jpeg", "data": b64}}]}]}
+                        r = requests.post(url, json=payload, timeout=90)
                         data = r.json()
-                        if "choices" not in data:
-                            st.error(f"Groq Error: {data}")
+                        if "candidates" not in data:
+                            st.error(f"Gemini Error: {data}")
                         else:
-                            result = data["choices"][0]["message"]["content"]
-                            st.success("✅ Meta AI Check Complete")
+                            result = data["candidates"][0]["content"]["parts"][0]["text"]
+                            st.success("✅ AI Check Complete")
                             st.markdown(result)
                             wa_text = f"VL PHOTO CHECK - {store_name_photo}\nStandard: {check_type}\n\n{result}"
                             wa_link = f"https://wa.me/{YOUR_WHATSAPP}?text={urllib.parse.quote(wa_text)}"

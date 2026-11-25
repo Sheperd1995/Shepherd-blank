@@ -179,14 +179,14 @@ def get_points(prefix, count):
     return pts
 
 def get_all_scores():
-    g_pts = get_points("gen", len(GENERAL)); g_pct = g_pts/120*100 if 120 else 0
-    s_pts = get_points("store", len(STOREOP)); s_pct = s_pts/90*100 if 90 else 0
-    a_pts = get_points("admin", len(ADMIN)); a_pct = a_pts/105*100 if 105 else 0
-    h_pts = get_points("hanger", len(HANGER)); h_pct = h_pts/25*100 if 25 else 0
-    m_pts = get_points("merch", len(MERCH)); m_pct = m_pts/125*100 if 125 else 0
+    g_pts = get_points("gen", len(GENERAL)); g_pct = g_pts/120*100
+    s_pts = get_points("store", len(STOREOP)); s_pct = s_pts/90*100
+    a_pts = get_points("admin", len(ADMIN)); a_pct = a_pts/105*100
+    h_pts = get_points("hanger", len(HANGER)); h_pct = h_pts/25*100
+    m_pts = get_points("merch", len(MERCH)); m_pct = m_pts/125*100
     tl_pts = get_points("staff_tl", len(STAFF_TL))
     assoc_pts = get_points("staff_assoc", len(STAFF_ASSOC))
-    staff_pts = tl_pts + assoc_pts; staff_pct = staff_pts/190*100 if 190 else 0
+    staff_pts = tl_pts + assoc_pts; staff_pct = staff_pts/190*100
     total = (g_pct + s_pct + a_pct + h_pct + m_pct + staff_pct) / 6
     return {
         "General": (g_pts, 120, g_pct),
@@ -214,7 +214,6 @@ def checklist(title, questions, prefix, max_points, show_comment=False):
     pts = get_points(prefix, len(questions))
     pct = pts / max_points * 100 if max_points else 0
     st.success(f"{title} Score: {pts} / {max_points} - {pct:.2f}%")
-    # NEW: Finish button to go to Score Sheet
     if st.button(f"✅ Finish {title} & View Score Sheet", use_container_width=True, key=f"finish_{prefix}"):
         st.session_state.page = "Score Sheet"
         st.rerun()
@@ -222,7 +221,6 @@ def checklist(title, questions, prefix, max_points, show_comment=False):
 
 def build_full_csv():
     scores = get_all_scores()
-    # Section 1: Store Info
     rows = []
     rows.append(["VICTORY LAB - STORE AUDIT - FULL SCORES"])
     rows.append(["Region", st.session_state.get("region","")])
@@ -246,7 +244,6 @@ def build_full_csv():
     rows.append([])
     rows.append(["DETAILED ANSWERS"])
     rows.append(["Section", "No", "Question", "Answer", "Points", "Comment"])
-    # Helper to add detail
     def add_detail(section, questions, prefix):
         for i, q in enumerate(questions):
             ans = st.session_state.get(f"{prefix}_{i}", "--")
@@ -327,11 +324,9 @@ if choice == "Score Sheet":
     st.text_input("DESIGNATION", key="checker_desig")
     st.caption("I, the above mentioned Line Manager, hereby confirm that I have completed this Checklist and the answers given are a true reflection of the stores risk.")
 
-    # NEW: Download FULL CSV - includes all Control Areas + all answers
     csv_data = build_full_csv()
     st.download_button("📥 Download FULL Scores as CSV (All Control Areas + All Answers)", csv_data, "victory_lab_full_scores.csv", "text/csv", use_container_width=True)
 
-    # NEW: Send Score Sheet to WhatsApp
     st.markdown("---")
     st.subheader("Send Score Sheet on WhatsApp")
     wa_text = f"VICTORY LAB - STORE AUDIT\nStore: {st.session_state.get('store','')} ({st.session_state.get('store_code','')})\nRegion: {st.session_state.get('region','')}\nManager: {st.session_state.get('manager','')}\nDate: {st.session_state.get('date_complete','')}\n\nCONTROL AREA SCORES:\n"
@@ -392,7 +387,6 @@ elif choice == "Feedback":
 elif choice == "AI Assistant":
     st.header("🤖 Victory Lab AI Assistant - Like Google AI Studio")
     st.write("Ask me anything about the audit. Example: What is hanger count? How do I improve Merchandise?")
-    # Try Gemini if key exists, else use simple brain
     use_gemini = False
     model = None
     try:
@@ -419,4 +413,24 @@ elif choice == "AI Assistant":
                     resp = model.generate_content(prompt)
                     answer = resp.text
                 except Exception as e:
-                    answer = "Sorry, Gemini is not available
+                    answer = "Sorry, Gemini is not available now. Try again."
+            st.session_state.chat.append({"role": "assistant", "content": answer})
+            st.rerun()
+        else:
+            if "hanger" in q:
+                answer = "Hanger Count = Count all stock by department. 5 questions, 25 points. Check: Can staff generate report? Can they count? Can they categorise? Are counts filed? Calculated correctly?"
+            elif "general" in q:
+                answer = "General has 24 questions, 120 points. Checks: Staff on time, Trading hours, Window clean, Opening procedure, Greeter, Fingerprint, Float, Morning Meeting, Music, TV, Cashdesk."
+            elif "admin" in q:
+                answer = "Admin has 21 questions, 105 points. Checks: Banking, Cards/cash balancing, Sales book, Petty cash filed in sequence, Refund slips signed, Transfers not older than a month."
+            elif "merchandise" in q or "visual" in q:
+                answer = "Merchandise has 25 questions, 125 points. Checks: Windows, Nesting tables, Denim wall lowest to highest, T-Shirt Bay, Primo Wall, Sale rail, Footwear, Accessories, Mannequins, VL Stickers."
+            elif "score" in q or "total" in q:
+                s = get_all_scores()
+                answer = f"Your Total is average of 6 sections. Current: General {s['General'][2]:.2f}%, Store Op {s['Store Operation'][2]:.2f}%, Admin {s['Admin'][2]:.2f}%, Hanger {s['Hanger Count'][2]:.2f}%, Merch {s['Merchandise'][2]:.2f}%, Staff {s['Staff Review'][2]:.2f}% = TOTAL {s['TOTAL'][0]:.2f}%"
+            elif "hello" in q or "hi" in q:
+                answer = "Hello! How can I help you with your store audit today?"
+            else:
+                answer = f"I can help with General, Store Operation, Admin, Hanger Count, Merchandise, Staff Review, or Scores. Try: 'What is Hanger Count?' You asked: {question}"
+            st.session_state.chat.append({"role": "assistant", "content": answer})
+            st.rerun()

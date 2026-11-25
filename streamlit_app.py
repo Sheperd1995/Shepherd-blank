@@ -206,8 +206,18 @@ elif choice == "Staff Review":
 elif choice == "📸 Photo Check - Meta AI":
     st.header("📸 Photo Check")
     st.caption("Upload BEFORE photo. AI will check it AND make the CORRECTION picture using the SAME content.")
-    typed_key = st.text_input("🔑 Paste your Gemini API Key here", type="password", placeholder="Paste key here")
-    api_key = typed_key.strip()
+    # --- KEY FROM STREAMLIT SECRETS ONLY - DO NOT PUT KEY IN THIS FILE ---
+    secret_key = ""
+    try:
+        secret_key = st.secrets["GEMINI_API_KEY"]
+    except:
+        secret_key = ""
+    typed_key = st.text_input("🔑 Gemini Key (leave blank - it is saved in Secrets)", type="password", placeholder="Saved in Secrets - no need to paste")
+    api_key = typed_key.strip() if typed_key.strip() else secret_key.strip() if secret_key else ""
+    if api_key:
+        st.success("✅ Gemini Key is saved - ready to use")
+    else:
+        st.warning("⚠️ No key saved yet. Go to Streamlit Cloud > Settings > Secrets and add GEMINI_API_KEY")
     check_type = st.selectbox("What are you checking?", ["Layby - Bags filed neatly, labels visible, no piling","Stockroom - Neat, labelled, no stock on floor","General - Window clean, Trading hours visible, Cashdesk clean","Merchandise - Nesting tables full, Denim wall lowest to highest, Mannequins dressed","Store Operation - Fitting rooms clean, No cluster, No tags","Admin - Admin presentation neat and tidy","Cashdesk - Clean, cables neat, perfumes displayed"])
     photo = st.file_uploader("Take / Upload Photo", type=["jpg", "jpeg", "png"])
     store_name_photo = st.text_input("Store Name", key="photo_store")
@@ -216,11 +226,10 @@ elif choice == "📸 Photo Check - Meta AI":
         st.image(photo, caption="Before - Your Photo", use_container_width=True)
         if st.button("🤖 Check + Make CORRECTION Picture", use_container_width=True):
             if not api_key:
-                st.error("❌ Paste your Gemini key first.")
+                st.error("❌ No Gemini Key saved. Add it in Streamlit Secrets.")
             else:
                 img_bytes = photo.getvalue()
                 b64 = base64.b64encode(img_bytes).decode("utf-8")
-                # STEP 1 - TEXT CHECK
                 with st.spinner("Step 1/2 - AI is checking..."):
                     try:
                         prompt = f"You are Victory Lab Store Audit Expert. Standard: {check_type} Store: {store_name_photo}. Look at photo. Give: 1. VERDICT: PASS or FAIL 2. SCORE: X / 5 3. WHAT IS WRONG: 3-5 things you SEE wrong 4. HOW TO CORRECT IT NOW: step-by-step in 30 mins. Short, simple, South African English."
@@ -235,7 +244,6 @@ elif choice == "📸 Photo Check - Meta AI":
                             st.error(f"Check Error: {data}")
                     except Exception as e:
                         st.error(f"Error: {e}")
-                # STEP 2 - CORRECTION PICTURE USING SAME CONTENT
                 st.markdown("### Correction")
                 st.caption("AI is now making the Correction picture - SAME shelf, SAME bags, SAME content, just tidied.")
                 with st.spinner("Step 2/2 - AI is making CORRECTION picture... wait 20-30 seconds..."):

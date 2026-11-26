@@ -6,6 +6,7 @@ import base64
 import io
 from PIL import Image
 import requests
+gemini-2.0-flash
 
 st.set_page_config(page_title="Victory Lab - Store Audit", layout="wide", initial_sidebar_state="expanded")
 

@@ -187,7 +187,7 @@ elif choice == "Photo Check - Meta AI":
                 with st.spinner("Step 1/2 - AI is checking..."):
                     try:
                         prompt = f"You are Victory Lab Store Audit Expert. Standard: {check_type} Store: {store_name_photo}. Look at photo. Give: 1. VERDICT: PASS or FAIL 2. SCORE: X / 5 3. WHAT IS WRONG: 3-5 things you SEE wrong 4. HOW TO CORRECT IT NOW: step-by-step in 30 mins. Short, simple, South African English."
-                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
                         payload = {"contents": [{"parts": [{"text": prompt}, {"inlineData": {"mimeType": "image/jpeg", "data": b64}}]}]}
                         r = requests.post(url, json=payload, timeout=90); data = r.json()
                         if "candidates" in data:
@@ -198,7 +198,7 @@ elif choice == "Photo Check - Meta AI":
                 with st.spinner("Step 2/2 - AI is making CORRECTION picture... wait 20-30 seconds..."):
                     try:
                         fix_prompt = f"Edit this exact photo into a CORRECTION version. CRITICAL RULES: Use the SAME content as the original photo. Do NOT add new items, do NOT remove items, do NOT change the number of bags / boxes / clothes. Keep the exact same room, same shelves, same camera angle, same lighting, same colours. ONLY change: tidy and straighten what is already there to meet this standard: {check_type}. Align bags in neat straight rows, labels facing forward, no bags hanging messy, no stock on floor, shelves clean and organised, boxes neatly stacked. The result must look like the SAME store after staff tidied it, not a different store. Realistic photo, not cartoon, not illustration."
-                        url2 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key={api_key}"
+                        url2 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key={api_key}"
                         payload2 = {"contents": [{"parts": [{"text": fix_prompt}, {"inlineData": {"mimeType": "image/jpeg", "data": b64}}]}], "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}}
                         r2 = requests.post(url2, json=payload2, timeout=120); data2 = r2.json(); found = False
                         if "candidates" in data2:
